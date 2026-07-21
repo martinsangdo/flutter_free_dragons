@@ -89,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen>
                     _buildLogo(),
                     const SizedBox(height: 12),
                     const Text(
-                      'Slide blocks. Free the key.',
+                      'Slide blocks. Free the egg.',
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 16,
@@ -150,14 +150,14 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
             child: const Icon(
-              Icons.vpn_key_rounded,
+              Icons.egg_alt_rounded,
               color: AppColors.keyBlock,
               size: 52,
             ),
           ),
           const SizedBox(height: 24),
           const Text(
-            'FREE THE KEY',
+            'FREE THE EGGS',
             style: TextStyle(
               color: AppColors.textPrimary,
               fontSize: 32,

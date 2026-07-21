@@ -1,15 +1,22 @@
-# Free The Key — CLAUDE.md
+# Free The Eggs — CLAUDE.md
 
 Onboarding notes for any Claude Code session working in this repo.
 
 ## Game concept
 
-**Free The Key** is a Rush Hour / Unblock Me–style sliding-block puzzle. The
+**Free The Eggs** is a Rush Hour / Unblock Me–style sliding-block puzzle. The
 board is a 6×6 grid. Blocks slide only along their axis (horizontal blocks move
 left/right, vertical blocks move up/down) and cannot rotate or overlap. One
-special **key block** (golden, length 2) sits on the exit row (row index 2, the
+special goal block (golden, length 2) sits on the exit row (row index 2, the
 `kExitRow` constant). The player drags the other blocks out of the way to open a
-lane, then slides the key off the right edge.
+lane, then slides it off the right edge.
+
+**Terminology:** players see this block called **the egg**; the code calls it the
+**key block** (`isKey`, `keyBlock`, and the `"k"` field in serialized levels).
+The game was renamed from "Free The Key" and the identifiers were deliberately
+left alone — renaming the `"k"` JSON field would invalidate the bundled
+`campaign_levels.json` and every cached level for no player-visible gain. If you
+add player-facing copy, say "egg".
 
 - **Win condition:** the key block slides past the right edge (`col + length >
   kGridSize`). There is **no lose condition** — it's a pure puzzle.
@@ -27,8 +34,9 @@ lane, then slides the key off the right edge.
 - **Persistence: `shared_preferences` only.** Progress is simple key/value
   (unlock index, per-level stars, endless best, settings flags), so no
   Hive/sqflite schema was needed. Generated levels are cached as JSON in prefs.
-- **App ID prefix:** `com.xufagroup.*` (Android `com.xufagroup.free_the_key`,
-  iOS `com.xufagroup.freeTheKey`).
+- **App ID prefix:** `com.xufagroup.*` (Android `com.xufagroup.free_the_eggs`,
+  iOS `com.xufagroup.freeTheEggs`). iOS uses camelCase because Apple bundle IDs
+  are restricted to alphanumerics, hyphens and periods — no underscores.
 
 ## Folder structure / where things live
 

@@ -12,7 +12,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await tester.pump();
 
-    expect(find.text('FREE THE KEY'), findsOneWidget);
+    expect(find.text('FREE THE EGGS'), findsOneWidget);
     expect(find.text('PLAY'), findsOneWidget);
     expect(find.text('LEVELS'), findsOneWidget);
     expect(find.text('ENDLESS'), findsOneWidget);

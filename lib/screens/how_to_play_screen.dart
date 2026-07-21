@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/app_prefs.dart';
+import '../data/egg_sprites.dart';
 import '../models/block.dart';
 import '../theme/app_colors.dart';
 import '../widgets/board_painter.dart';
@@ -22,8 +23,8 @@ class _HowToPlayScreenState extends State<HowToPlayScreen> {
 
   static const _pages = [
     _HowToPage(
-      title: 'FREE THE KEY',
-      body: 'Slide the glowing golden key block off the right edge of the '
+      title: 'FREE THE EGGS',
+      body: 'Slide the glowing golden egg off the right edge of the '
           'board to win each level.',
       blocks: [
         _Demo(2, 1, 2, true, key: true),
@@ -42,7 +43,7 @@ class _HowToPlayScreenState extends State<HowToPlayScreen> {
     ),
     _HowToPage(
       title: 'CLEAR THE PATH',
-      body: 'Blockers stand between the key and the exit. Shuffle them out of '
+      body: 'Blockers stand between the egg and the exit. Shuffle them out of '
           'the way to open a lane.',
       blocks: [
         _Demo(2, 0, 2, true, key: true),
@@ -250,7 +251,12 @@ class _HowToPage extends StatelessWidget {
       width: size + 24,
       height: size,
       child: CustomPaint(
-        painter: BoardPainter(blocks: demoBlocks, cellSize: cell, exitPulse: 1),
+        painter: BoardPainter(
+          blocks: demoBlocks,
+          cellSize: cell,
+          exitPulse: 1,
+          eggSprite: EggSprites.sample,
+        ),
       ),
     );
   }

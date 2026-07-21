@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.xufagroup.free_the_key"
+    namespace = "com.xufagroup.free_the_eggs"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.xufagroup.free_the_key"
+        applicationId = "com.xufagroup.free_the_eggs"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/app_prefs.dart';
+import '../data/egg_sprites.dart';
 import '../data/level_repository.dart';
 import 'home_screen.dart';
 import 'how_to_play_screen.dart';
@@ -35,7 +36,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _boot() async {
     final minSplash = Future<void>.delayed(const Duration(seconds: 2));
-    final load = LevelRepository.instance.ensureLoaded();
+    // Decode the egg sprites here so the board never paints a goal block
+    // without its artwork. Runs alongside level loading, not after it.
+    final load = Future.wait([
+      LevelRepository.instance.ensureLoaded(),
+      EggSprites.load(),
+    ]);
 
     // Keep the splash up for the nominal 2s. If first-launch generation runs
     // longer, show a subtle "preparing" note instead of a frozen screen.

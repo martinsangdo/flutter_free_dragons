@@ -1,3 +1,6 @@
+import 'dart:math';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import '../models/block.dart';
 import '../theme/app_colors.dart';
@@ -10,12 +13,18 @@ class BoardPainter extends CustomPainter {
   final int? hintBlockId;
   final double exitPulse; // 0.0–1.0 animation value
 
+  /// Artwork drawn on the goal block, from [EggSprites]. Null before the
+  /// sprites finish decoding; the block then renders without it rather than
+  /// blocking the first frame.
+  final ui.Image? eggSprite;
+
   BoardPainter({
     required this.blocks,
     required this.cellSize,
     this.draggingId,
     this.hintBlockId,
     this.exitPulse = 0.0,
+    this.eggSprite,
   });
 
   @override
@@ -181,9 +190,9 @@ class BoardPainter extends CustomPainter {
       canvas.drawRRect(rect, hintPaint);
     }
 
-    // Key icon on key block
+    // Egg artwork on the goal block
     if (block.isKey) {
-      _drawKeyIcon(canvas, left, top, width, height);
+      _drawEgg(canvas, left, top, width, height);
     }
 
     // Direction arrows on blocks
@@ -192,34 +201,41 @@ class BoardPainter extends CustomPainter {
     }
   }
 
-  void _drawKeyIcon(Canvas canvas, double left, double top, double w, double h) {
-    final cx = left + w / 2;
-    final cy = top + h / 2;
-    final r = h * 0.28;
+  /// Draw the egg centred on the goal block, scaled to fit while keeping its
+  /// aspect ratio. The gold block is deliberately left visible around it: its
+  /// two-cell footprint is what tells the player how much room the goal needs,
+  /// so the artwork must not swallow the silhouette.
+  void _drawEgg(Canvas canvas, double left, double top, double w, double h) {
+    final sprite = eggSprite;
+    if (sprite == null) return;
 
-    final ringPaint = Paint()
-      ..color = Colors.white.withOpacity(0.7)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = h * 0.1
-      ..strokeCap = StrokeCap.round;
+    final src = Rect.fromLTWH(
+      0,
+      0,
+      sprite.width.toDouble(),
+      sprite.height.toDouble(),
+    );
 
-    canvas.drawCircle(Offset(cx - w * 0.15, cy), r, ringPaint);
+    // Contain within the shorter axis, inset so the egg never touches the edge.
+    final box = min(w, h) * 0.72;
+    final scale = min(box / sprite.width, box / sprite.height);
+    final dw = sprite.width * scale;
+    final dh = sprite.height * scale;
+    final dst = Rect.fromLTWH(
+      left + (w - dw) / 2,
+      top + (h - dh) / 2,
+      dw,
+      dh,
+    );
 
-    final stemPaint = Paint()
-      ..color = Colors.white.withOpacity(0.7)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = h * 0.1
-      ..strokeCap = StrokeCap.round;
-
-    final stemPath = Path()
-      ..moveTo(cx - w * 0.15 + r, cy)
-      ..lineTo(cx + w * 0.28, cy)
-      ..moveTo(cx + w * 0.18, cy)
-      ..lineTo(cx + w * 0.18, cy + h * 0.18)
-      ..moveTo(cx + w * 0.28, cy)
-      ..lineTo(cx + w * 0.28, cy + h * 0.15);
-
-    canvas.drawPath(stemPath, stemPaint);
+    // The source art is small (24px), so it is always being scaled up here;
+    // medium filtering upsamples noticeably better than the default.
+    canvas.drawImageRect(
+      sprite,
+      src,
+      dst,
+      Paint()..filterQuality = FilterQuality.medium,
+    );
   }
 
   void _drawDirectionHint(
@@ -269,5 +285,8 @@ class BoardPainter extends CustomPainter {
       old.blocks != blocks ||
       old.draggingId != draggingId ||
       old.hintBlockId != hintBlockId ||
-      old.exitPulse != exitPulse;
+      old.exitPulse != exitPulse ||
+      // Without this the board keeps painting eggless if the sprites finish
+      // decoding after the first frame.
+      old.eggSprite != eggSprite;
 }

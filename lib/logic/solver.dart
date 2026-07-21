@@ -27,7 +27,7 @@ class SolveResult {
   static const unsolvable = SolveResult(false, -1, []);
 }
 
-/// A breadth-first / Dijkstra solver for the "Free The Key" (Rush Hour style)
+/// A breadth-first / Dijkstra solver for the "Free The Eggs" (Rush Hour style)
 /// board. It is used both to verify hand-authored levels and to reject
 /// unsolvable procedurally-generated boards before they ever reach a player.
 ///

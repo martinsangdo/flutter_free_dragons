@@ -71,7 +71,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: EdgeInsets.only(bottom: 20),
               child: Center(
                 child: Text(
-                  'Free The Key • v1.0.0',
+                  'Free The Eggs • v1.0.0',
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 ),
               ),

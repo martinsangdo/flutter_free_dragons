@@ -4,7 +4,7 @@ import '../data/constants.dart';
 import '../models/level.dart';
 import 'solver.dart';
 
-/// Procedurally generates "Free The Key" boards that are guaranteed solvable.
+/// Procedurally generates "Free The Eggs" boards that are guaranteed solvable.
 ///
 /// Every candidate board is checked with [RushHourSolver] before being returned;
 /// unsolvable or trivially-solved boards are rejected and regenerated. Because

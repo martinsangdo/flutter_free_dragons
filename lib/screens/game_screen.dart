@@ -8,6 +8,7 @@ import '../widgets/banner_ad_placeholder.dart';
 import '../data/level_repository.dart';
 import '../data/app_prefs.dart';
 import '../data/daily_service.dart';
+import '../data/egg_sprites.dart';
 import '../data/progress_service.dart';
 import '../data/sound_service.dart';
 
@@ -214,6 +215,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 engine: _engine,
                 onWin: _onWin,
                 onMove: () => SoundService.instance.playMove(),
+                eggSprite: EggSprites.forLevel(_level.number),
               ),
             ),
           ),
@@ -350,10 +352,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lock_open,
+                  const Icon(Icons.egg_alt_rounded,
                       color: AppColors.keyBlock, size: 56),
                   const SizedBox(height: 12),
-                  const Text('KEY FREED!',
+                  const Text('EGG FREED!',
                       style: TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 28,

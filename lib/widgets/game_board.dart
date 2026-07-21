@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/constants.dart';
@@ -10,7 +12,16 @@ class GameBoard extends StatefulWidget {
   final VoidCallback? onWin;
   final VoidCallback? onMove;
 
-  const GameBoard({super.key, required this.engine, this.onWin, this.onMove});
+  /// Egg artwork for the goal block; see [EggSprites].
+  final ui.Image? eggSprite;
+
+  const GameBoard({
+    super.key,
+    required this.engine,
+    this.onWin,
+    this.onMove,
+    this.eggSprite,
+  });
 
   @override
   State<GameBoard> createState() => _GameBoardState();
@@ -69,6 +80,7 @@ class _GameBoardState extends State<GameBoard>
                 draggingId: widget.engine.draggingId,
                 hintBlockId: widget.engine.hintBlockId,
                 exitPulse: _exitPulse.value,
+                eggSprite: widget.eggSprite,
               ),
             ),
           ),

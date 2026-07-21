@@ -21,7 +21,7 @@ class FreeTheKeyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Free The Key',
+      title: 'Free The Eggs',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

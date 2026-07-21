@@ -1,4 +1,4 @@
-package com.xufagroup.free_the_key
+package com.xufagroup.free_the_eggs
 
 import io.flutter.embedding.android.FlutterActivity
 
