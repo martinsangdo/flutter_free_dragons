@@ -3,6 +3,7 @@ import '../models/block.dart';
 import '../models/level.dart';
 import '../theme/app_colors.dart';
 import '../data/constants.dart';
+import 'solver.dart';
 
 class GameEngine extends ChangeNotifier {
   final Level level;
@@ -11,6 +12,11 @@ class GameEngine extends ChangeNotifier {
   bool isWon = false;
   int? _draggingId;
   int? get draggingId => _draggingId;
+
+  // Solver-backed hint: the block the player should move next and in which
+  // direction. Cleared as soon as any move is made.
+  int? hintBlockId;
+  int hintDelta = 0;
 
   void setDragging(int? id) {
     _draggingId = id;
@@ -44,8 +50,44 @@ class GameEngine extends ChangeNotifier {
     moves = 0;
     isWon = false;
     _draggingId = null;
+    hintBlockId = null;
+    hintDelta = 0;
     _initBlocks();
     notifyListeners();
+  }
+
+  /// Runs the solver on the *current* board and marks the next optimal move as
+  /// a hint. Returns false if there is no move to suggest (already won or, in
+  /// theory, stuck). The board itself is not changed — the player still makes
+  /// the move.
+  bool computeHint() {
+    if (isWon) return false;
+    final configs = blocks
+        .map((b) => BlockConfig(
+              row: b.row,
+              col: b.col,
+              length: b.length,
+              isHorizontal: b.isHorizontal,
+              isKey: b.isKey,
+            ))
+        .toList();
+    final result = RushHourSolver(configs).solve(configs);
+    if (!result.solvable || result.path.isEmpty) {
+      hintBlockId = null;
+      return false;
+    }
+    final move = result.path.first;
+    hintBlockId = blocks[move.blockIndex].id;
+    hintDelta = move.delta;
+    notifyListeners();
+    return true;
+  }
+
+  void clearHint() {
+    if (hintBlockId != null) {
+      hintBlockId = null;
+      notifyListeners();
+    }
   }
 
   Set<(int, int)> _occupiedCells({int? excludeId}) {
@@ -125,6 +167,9 @@ class GameEngine extends ChangeNotifier {
     }
 
     if (clampedDelta == 0) return false;
+
+    // A move invalidates any showing hint.
+    hintBlockId = null;
 
     if (block.isHorizontal) {
       blocks[idx].col += clampedDelta;

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zincgames.free_the_key"
+    namespace = "com.xufagroup.free_the_key"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.zincgames.free_the_key"
+        applicationId = "com.xufagroup.free_the_key"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

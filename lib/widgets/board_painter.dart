@@ -7,12 +7,14 @@ class BoardPainter extends CustomPainter {
   final List<Block> blocks;
   final double cellSize;
   final int? draggingId;
+  final int? hintBlockId;
   final double exitPulse; // 0.0–1.0 animation value
 
   BoardPainter({
     required this.blocks,
     required this.cellSize,
     this.draggingId,
+    this.hintBlockId,
     this.exitPulse = 0.0,
   });
 
@@ -170,6 +172,15 @@ class BoardPainter extends CustomPainter {
       ..strokeWidth = 1.5;
     canvas.drawRRect(rect, borderPaint);
 
+    // Hint highlight: a pulsing bright outline around the suggested block.
+    if (block.id == hintBlockId) {
+      final hintPaint = Paint()
+        ..color = AppColors.exitGlow.withOpacity(0.6 + exitPulse * 0.4)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.0 + exitPulse * 1.5;
+      canvas.drawRRect(rect, hintPaint);
+    }
+
     // Key icon on key block
     if (block.isKey) {
       _drawKeyIcon(canvas, left, top, width, height);
@@ -257,5 +268,6 @@ class BoardPainter extends CustomPainter {
   bool shouldRepaint(BoardPainter old) =>
       old.blocks != blocks ||
       old.draggingId != draggingId ||
+      old.hintBlockId != hintBlockId ||
       old.exitPulse != exitPulse;
 }

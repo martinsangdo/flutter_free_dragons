@@ -34,4 +34,13 @@ class ProgressService {
   static bool isUnlocked(int levelIndex, int highestUnlocked) {
     return levelIndex <= highestUnlocked;
   }
+
+  /// Wipe all campaign progress (unlock state + stars). Used by Settings.
+  static Future<void> resetProgress(int levelCount) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_unlockedKey);
+    for (int i = 0; i < levelCount; i++) {
+      await prefs.remove('$_starsPrefix$i');
+    }
+  }
 }

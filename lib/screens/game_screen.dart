@@ -4,44 +4,69 @@ import '../logic/game_engine.dart';
 import '../models/level.dart';
 import '../theme/app_colors.dart';
 import '../widgets/game_board.dart';
-import '../data/levels_data.dart';
+import '../widgets/banner_ad_placeholder.dart';
+import '../data/level_repository.dart';
+import '../data/app_prefs.dart';
+import '../data/daily_service.dart';
 import '../data/progress_service.dart';
 import '../data/sound_service.dart';
 
-class GameScreen extends StatefulWidget {
-  final int levelIndex;
+enum GameMode { campaign, endless, daily }
 
-  const GameScreen({super.key, required this.levelIndex});
+/// Plays a single level in one of three modes:
+///  - [GameMode.campaign]: [index] is the level index (0-based).
+///  - [GameMode.endless]:  [index] is the 0-based endless level number.
+///  - [GameMode.daily]:    today's deterministic daily challenge.
+class GameScreen extends StatefulWidget {
+  final int index;
+  final GameMode mode;
+
+  const GameScreen({super.key, this.index = 0, this.mode = GameMode.campaign});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late GameEngine _engine;
+  late Level _level;
   late AnimationController _winController;
   late Animation<double> _winScale;
   late AnimationController _bgController;
   bool _showWin = false;
-  bool _muted = false;
+  bool _sfxOn = false;
+  int _dailyStreak = 0;
 
-  Level get _level => kLevels[widget.levelIndex];
+  bool get _isEndless => widget.mode == GameMode.endless;
+  bool get _isDaily => widget.mode == GameMode.daily;
 
   @override
   void initState() {
     super.initState();
+    final repo = LevelRepository.instance;
+    switch (widget.mode) {
+      case GameMode.campaign:
+        _level = repo.levels[widget.index];
+        break;
+      case GameMode.endless:
+        _level = repo.endlessLevel(widget.index);
+        break;
+      case GameMode.daily:
+        _level = repo.dailyLevel(DateTime.now());
+        break;
+    }
     _engine = GameEngine(_level);
     _winController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _winScale = CurvedAnimation(parent: _winController, curve: Curves.elasticOut);
+    _winScale =
+        CurvedAnimation(parent: _winController, curve: Curves.elasticOut);
     _bgController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat();
-    _muted = SoundService.instance.isMuted;
+    _sfxOn = SoundService.instance.sfxEnabled;
   }
 
   @override
@@ -52,8 +77,21 @@ class _GameScreenState extends State<GameScreen>
     super.dispose();
   }
 
-  void _onWin() {
-    ProgressService.markCompleted(widget.levelIndex, _engine.starRating);
+  Future<void> _onWin() async {
+    switch (widget.mode) {
+      case GameMode.campaign:
+        ProgressService.markCompleted(widget.index, _engine.starRating);
+        break;
+      case GameMode.endless:
+        // Reaching level N means N levels cleared.
+        await AppPrefs.recordEndless(widget.index + 1);
+        break;
+      case GameMode.daily:
+        final result = await DailyService.markComplete();
+        _dailyStreak = result.streak;
+        break;
+    }
+    SoundService.instance.playWin();
     Future.delayed(const Duration(milliseconds: 400), () {
       if (!mounted) return;
       setState(() => _showWin = true);
@@ -62,8 +100,8 @@ class _GameScreenState extends State<GameScreen>
   }
 
   Future<void> _toggleSound() async {
-    await SoundService.instance.toggleMute();
-    setState(() => _muted = SoundService.instance.isMuted);
+    await SoundService.instance.setSfxEnabled(!_sfxOn);
+    setState(() => _sfxOn = SoundService.instance.sfxEnabled);
   }
 
   void _reset() {
@@ -72,15 +110,58 @@ class _GameScreenState extends State<GameScreen>
     _winController.reset();
   }
 
-  void _nextLevel() {
-    final nextIdx = widget.levelIndex + 1;
-    if (nextIdx >= kLevels.length) {
+  void _next() {
+    final nextIdx = widget.index + 1;
+    if (widget.mode == GameMode.campaign &&
+        nextIdx >= LevelRepository.instance.levelCount) {
       Navigator.of(context).pop();
       return;
     }
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => GameScreen(levelIndex: nextIdx)),
+      MaterialPageRoute(
+        builder: (_) => GameScreen(index: nextIdx, mode: widget.mode),
+      ),
     );
+  }
+
+  /// Stubbed rewarded-ad hint flow. Wire a real rewarded ad in place of the
+  /// dialog's "Watch" branch; on reward, [GameEngine.computeHint] already
+  /// highlights the next optimal move (computed by the solver).
+  Future<void> _showHint() async {
+    if (_engine.isWon) return;
+    final watch = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.boardBg,
+        title: const Text('Need a hint?',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: const Text(
+          'Watch a short video to reveal the next best move.\n\n'
+          '(Rewarded ad placeholder — no ad SDK wired up yet.)',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('CANCEL',
+                style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('WATCH',
+                style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+    if (watch == true) {
+      final ok = _engine.computeHint();
+      if (!ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No hint available')),
+        );
+      }
+    }
   }
 
   @override
@@ -90,17 +171,26 @@ class _GameScreenState extends State<GameScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          AnimatedBuilder(
-            animation: _bgController,
-            builder: (_, __) => CustomPaint(
-              painter: _BackgroundPainter(_bgController.value),
+          RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: _bgController,
+              builder: (_, __) => CustomPaint(
+                painter: _BackgroundPainter(_bgController.value),
+              ),
             ),
           ),
           SafeArea(
-            child: Stack(
+            child: Column(
               children: [
-                _buildGame(),
-                if (_showWin) _buildWinOverlay(),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      _buildGame(),
+                      if (_showWin) _buildWinOverlay(),
+                    ],
+                  ),
+                ),
+                const BannerAdPlaceholder(),
               ],
             ),
           ),
@@ -115,7 +205,7 @@ class _GameScreenState extends State<GameScreen>
         _buildHeader(),
         const SizedBox(height: 8),
         _buildStatsRow(),
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
         Expanded(
           child: Center(
             child: Padding(
@@ -123,33 +213,38 @@ class _GameScreenState extends State<GameScreen>
               child: GameBoard(
                 engine: _engine,
                 onWin: _onWin,
-                onMove: () => SoundService.instance.play(),
+                onMove: () => SoundService.instance.playMove(),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
       ],
     );
   }
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary),
+            icon: const Icon(Icons.arrow_back_ios_new,
+                color: AppColors.textPrimary),
             onPressed: () => Navigator.of(context).pop(),
           ),
           Expanded(
             child: Column(
               children: [
                 Text(
-                  'LEVEL ${_level.number}',
+                  _isDaily
+                      ? 'DAILY CHALLENGE'
+                      : _isEndless
+                          ? 'ENDLESS #${widget.index + 1}'
+                          : 'LEVEL ${_level.number}',
                   style: const TextStyle(
                     color: AppColors.textPrimary,
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 3,
                   ),
@@ -166,11 +261,15 @@ class _GameScreenState extends State<GameScreen>
               ],
             ),
           ),
+          // Hint button — top-right, per spec.
           IconButton(
-            icon: Icon(
-              _muted ? Icons.volume_off : Icons.volume_up,
-              color: AppColors.textSecondary,
-            ),
+            icon: const Icon(Icons.lightbulb_outline, color: AppColors.keyBlock),
+            tooltip: 'Hint',
+            onPressed: _showHint,
+          ),
+          IconButton(
+            icon: Icon(_sfxOn ? Icons.volume_up : Icons.volume_off,
+                color: AppColors.textSecondary),
             onPressed: _toggleSound,
           ),
           IconButton(
@@ -213,13 +312,18 @@ class _GameScreenState extends State<GameScreen>
                   color: color, fontSize: 26, fontWeight: FontWeight.bold)),
           Text(label,
               style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 11, letterSpacing: 1.5)),
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  letterSpacing: 1.5)),
         ],
       ),
     );
   }
 
   Widget _buildWinOverlay() {
+    final hasNext = _isEndless ||
+        (widget.mode == GameMode.campaign &&
+            widget.index + 1 < LevelRepository.instance.levelCount);
     return AnimatedBuilder(
       animation: _winScale,
       builder: (_, __) => Container(
@@ -233,7 +337,8 @@ class _GameScreenState extends State<GameScreen>
               decoration: BoxDecoration(
                 color: AppColors.boardBg,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.primary.withOpacity(0.5), width: 2),
+                border:
+                    Border.all(color: AppColors.primary.withOpacity(0.5), width: 2),
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.primary.withOpacity(0.2),
@@ -245,7 +350,8 @@ class _GameScreenState extends State<GameScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lock_open, color: AppColors.keyBlock, size: 56),
+                  const Icon(Icons.lock_open,
+                      color: AppColors.keyBlock, size: 56),
                   const SizedBox(height: 12),
                   const Text('KEY FREED!',
                       style: TextStyle(
@@ -268,18 +374,31 @@ class _GameScreenState extends State<GameScreen>
                           color: AppColors.textSecondary, fontSize: 14),
                     ),
                   ),
+                  if (_isDaily) ...[
+                    const SizedBox(height: 18),
+                    _buildStreakBadge(),
+                  ],
                   const SizedBox(height: 28),
                   Row(
                     children: [
                       Expanded(
-                        child: _winButton('RETRY', _reset,
-                            AppColors.boardBg, AppColors.textSecondary),
+                        child: _winButton('RETRY', _reset, AppColors.boardBg,
+                            AppColors.textSecondary),
                       ),
-                      const SizedBox(width: 12),
-                      if (widget.levelIndex + 1 < kLevels.length)
+                      if (hasNext) const SizedBox(width: 12),
+                      if (hasNext)
                         Expanded(
-                          child: _winButton('NEXT', _nextLevel,
-                              AppColors.primary, AppColors.buttonText),
+                          child: _winButton('NEXT', _next, AppColors.primary,
+                              AppColors.buttonText),
+                        ),
+                      if (_isDaily) const SizedBox(width: 12),
+                      if (_isDaily)
+                        Expanded(
+                          child: _winButton(
+                              'DONE',
+                              () => Navigator.of(context).pop(),
+                              AppColors.primary,
+                              AppColors.buttonText),
                         ),
                     ],
                   ),
@@ -288,6 +407,35 @@ class _GameScreenState extends State<GameScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStreakBadge() {
+    final unit = _dailyStreak == 1 ? 'day' : 'days';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.keyGlow.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.keyGlow.withOpacity(0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.local_fire_department,
+              color: AppColors.keyGlow, size: 24),
+          const SizedBox(width: 8),
+          Text(
+            '$_dailyStreak $unit streak',
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -321,7 +469,9 @@ class _GameScreenState extends State<GameScreen>
         alignment: Alignment.center,
         child: Text(label,
             style: TextStyle(
-                color: fg, fontSize: 15, fontWeight: FontWeight.bold,
+                color: fg,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
                 letterSpacing: 2)),
       ),
     );
@@ -337,6 +487,8 @@ class _GameScreenState extends State<GameScreen>
         return AppColors.keyGlow;
       case 'Expert':
         return const Color(0xFFFF4488);
+      case 'Master':
+        return const Color(0xFFAA44FF);
       default:
         return AppColors.textSecondary;
     }
@@ -349,13 +501,11 @@ class _BackgroundPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Base fill
     canvas.drawRect(
       Offset.zero & size,
       Paint()..color = AppColors.background,
     );
 
-    // Animated orbs: (x%, y%, radius%, color, phase offset)
     final orbs = [
       (0.15, 0.20, 0.45, AppColors.primary, 0.0),
       (0.85, 0.15, 0.38, AppColors.keyGlow, 0.33),
@@ -368,7 +518,6 @@ class _BackgroundPainter extends CustomPainter {
       final dy = size.height * 0.05 * math.cos(angle);
       final center = Offset(size.width * fx + dx, size.height * fy + dy);
       final radius = size.shortestSide * fr;
-
       final pulse = 0.85 + 0.15 * math.sin(angle * 1.5);
 
       canvas.drawCircle(
@@ -384,7 +533,6 @@ class _BackgroundPainter extends CustomPainter {
       );
     }
 
-    // Subtle grid-dot pattern
     final dotPaint = Paint()..color = AppColors.primary.withOpacity(0.04);
     const spacing = 28.0;
     for (double x = 0; x < size.width; x += spacing) {

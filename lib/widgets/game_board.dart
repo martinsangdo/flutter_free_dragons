@@ -67,6 +67,7 @@ class _GameBoardState extends State<GameBoard>
                 blocks: widget.engine.blocks,
                 cellSize: cellSize,
                 draggingId: widget.engine.draggingId,
+                hintBlockId: widget.engine.hintBlockId,
                 exitPulse: _exitPulse.value,
               ),
             ),

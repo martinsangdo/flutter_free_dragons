@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../data/levels_data.dart';
+import '../data/level_repository.dart';
 import '../data/progress_service.dart';
+import '../models/level.dart';
 import '../theme/app_colors.dart';
 import 'game_screen.dart';
 
@@ -15,6 +16,8 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> {
   int _highestUnlocked = 0;
   Map<int, int> _stars = {};
 
+  List<Level> get _levels => LevelRepository.instance.levels;
+
   @override
   void initState() {
     super.initState();
@@ -23,7 +26,7 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> {
 
   Future<void> _loadProgress() async {
     final h = await ProgressService.getHighestUnlocked();
-    final s = await ProgressService.getAllStars(kLevels.length);
+    final s = await ProgressService.getAllStars(_levels.length);
     if (mounted) setState(() {
       _highestUnlocked = h;
       _stars = s;
@@ -80,48 +83,21 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> {
   }
 
   Widget _buildGrid(BuildContext context) {
-    final groups = <String, List<int>>{};
-    for (int i = 0; i < kLevels.length; i++) {
-      final d = kLevels[i].difficulty;
-      groups.putIfAbsent(d, () => []).add(i);
-    }
-
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      children: groups.entries.map((e) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 16, bottom: 10),
-              child: Text(
-                e.key.toUpperCase(),
-                style: TextStyle(
-                  color: _difficultyColor(e.key),
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2.5,
-                ),
-              ),
-            ),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 5,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              children: e.value
-                  .map((idx) => _levelCard(context, idx))
-                  .toList(),
-            ),
-          ],
-        );
-      }).toList(),
+    // A single continuous grid of all levels in order — no difficulty labels,
+    // so the set reads as one escalating journey rather than "lots of easy ones".
+    return GridView.count(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      crossAxisCount: 5,
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      children: [
+        for (int i = 0; i < _levels.length; i++) _levelCard(context, i),
+      ],
     );
   }
 
   Widget _levelCard(BuildContext context, int idx) {
-    final level = kLevels[idx];
+    final level = _levels[idx];
     final unlocked = ProgressService.isUnlocked(idx, _highestUnlocked);
     final completed = _stars.containsKey(idx);
     final starCount = _stars[idx] ?? 0;
@@ -131,7 +107,7 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> {
       onTap: unlocked
           ? () async {
               await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => GameScreen(levelIndex: idx)),
+                MaterialPageRoute(builder: (_) => GameScreen(index: idx)),
               );
               _loadProgress();
             }
@@ -191,6 +167,8 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> {
         return AppColors.keyGlow;
       case 'Expert':
         return const Color(0xFFFF4488);
+      case 'Master':
+        return const Color(0xFFAA44FF);
       default:
         return AppColors.textSecondary;
     }

@@ -3,7 +3,11 @@ import '../models/level.dart';
 // Grid is 6×6. Exit is right side of row 2.
 // Horizontal block occupies (row, col)..(row, col+length-1)
 // Vertical   block occupies (row, col)..(row+length-1, col)
-const List<Level> kLevels = [
+//
+// These 20 hand-authored levels form the tutorial-to-Expert curve and always
+// appear first. The remaining campaign levels (to reach 80+) are generated and
+// verified solvable by [LevelRepository]. See lib/logic/solver.dart.
+const List<Level> kCuratedLevels = [
   // ── EASY ──────────────────────────────────────────────────────────────────
   Level(
     number: 1, difficulty: 'Easy', par: 2,
