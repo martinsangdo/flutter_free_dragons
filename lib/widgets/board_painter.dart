@@ -125,58 +125,18 @@ class BoardPainter extends CustomPainter {
       );
     }
 
-    // Glow for key block
-    if (block.isKey) {
-      final glowPaint = Paint()
-        ..color = AppColors.keyGlow.withOpacity(0.4)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
-      canvas.drawRRect(rect, glowPaint);
+    // The goal block has no fill — the egg sprite is the block. Only the
+    // obstacles are solid pieces.
+    if (!block.isKey) {
+      _drawBrickwork(canvas, block, rect);
     }
 
-    // Main block fill
-    final fillPaint = Paint()
-      ..color = block.color
-      ..style = PaintingStyle.fill;
-
-    if (block.isKey) {
-      final gradient = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          AppColors.keyBlock,
-          AppColors.keyGlow,
-        ],
-      );
-      fillPaint.shader = gradient.createShader(
-        Rect.fromLTWH(left, top, width, height),
-      );
-    } else {
-      final lighter = Color.lerp(block.color, Colors.white, 0.3)!;
-      final gradient = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [lighter, block.color],
-      );
-      fillPaint.shader = gradient.createShader(
-        Rect.fromLTWH(left, top, width, height),
-      );
-    }
-
-    canvas.drawRRect(rect, fillPaint);
-
-    // Highlight stripe
-    final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.25)
-      ..style = PaintingStyle.fill;
-    final hlRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(left + pad, top + pad, width - pad * 2, (height - pad * 2) * 0.4),
-      Radius.circular(cellSize * 0.1),
-    );
-    canvas.drawRRect(hlRect, highlightPaint);
-
-    // Border
+    // Border. The goal keeps a faint outline even without a fill: its two-cell
+    // footprint is what tells the player how much room the egg needs to leave.
     final borderPaint = Paint()
-      ..color = Colors.white.withOpacity(0.2)
+      ..color = block.isKey
+          ? Colors.white.withOpacity(0.12)
+          : Colors.black.withOpacity(0.35)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas.drawRRect(rect, borderPaint);
@@ -201,10 +161,105 @@ class BoardPainter extends CustomPainter {
     }
   }
 
+  /// Paint an obstacle block as a little brick wall: mortar underneath, then
+  /// running-bond courses laid over it and clipped to the block's rounded rect.
+  ///
+  /// Brick size is derived from [cellSize], not from the block, so a 2-cell and
+  /// a 3-cell block show bricks of the same physical size and the board reads as
+  /// one wall rather than a set of differently-scaled tiles. The per-brick tone
+  /// jitter is hashed from the block id and the brick's course/index so it is
+  /// stable across repaints — a random jitter would shimmer while dragging.
+  void _drawBrickwork(Canvas canvas, Block block, RRect rect) {
+    final bounds = rect.outerRect;
+
+    // Mortar bed.
+    canvas.drawRRect(
+      rect,
+      Paint()
+        ..color = Color.lerp(AppColors.mortar, block.color, 0.25)!
+        ..style = PaintingStyle.fill,
+    );
+
+    canvas.save();
+    canvas.clipRRect(rect);
+
+    final courseHeight = cellSize * 0.26;
+    final brickWidth = cellSize * 0.52;
+    final joint = cellSize * 0.035;
+    final radius = Radius.circular(cellSize * 0.03);
+
+    final courses = (bounds.height / courseHeight).ceil();
+    for (int c = 0; c < courses; c++) {
+      final y = bounds.top + c * courseHeight;
+      // Running bond: every other course is offset by half a brick.
+      final offset = c.isEven ? 0.0 : -brickWidth / 2;
+      var x = bounds.left + offset;
+      int i = 0;
+      while (x < bounds.right) {
+        final brick = Rect.fromLTWH(
+          x + joint / 2,
+          y + joint / 2,
+          brickWidth - joint,
+          courseHeight - joint,
+        );
+        // Deterministic tone jitter, roughly -8%..+8% brightness.
+        final h = (block.id * 73856093) ^ (c * 19349663) ^ (i * 83492791);
+        final t = ((h.abs() % 100) / 100.0 - 0.5) * 0.16;
+        final tone = t >= 0
+            ? Color.lerp(block.color, Colors.white, t)!
+            : Color.lerp(block.color, Colors.black, -t)!;
+
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(brick, radius),
+          Paint()..color = tone,
+        );
+
+        // Bevel: light along the top edge, shade along the bottom, so the
+        // bricks sit proud of the mortar instead of looking printed on.
+        canvas.drawLine(
+          Offset(brick.left, brick.top + 0.75),
+          Offset(brick.right, brick.top + 0.75),
+          Paint()
+            ..color = Colors.white.withOpacity(0.16)
+            ..strokeWidth = 1.5,
+        );
+        canvas.drawLine(
+          Offset(brick.left, brick.bottom - 0.75),
+          Offset(brick.right, brick.bottom - 0.75),
+          Paint()
+            ..color = Colors.black.withOpacity(0.22)
+            ..strokeWidth = 1.5,
+        );
+
+        x += brickWidth;
+        i++;
+      }
+    }
+
+    // Soft top-left lighting over the whole wall, so blocks still have the
+    // rounded, lit look the rest of the board uses.
+    canvas.drawRect(
+      bounds,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.10),
+            Colors.transparent,
+            Colors.black.withOpacity(0.18),
+          ],
+          stops: const [0.0, 0.45, 1.0],
+        ).createShader(bounds),
+    );
+
+    canvas.restore();
+  }
+
   /// Draw the egg centred on the goal block, scaled to fit while keeping its
-  /// aspect ratio. The gold block is deliberately left visible around it: its
-  /// two-cell footprint is what tells the player how much room the goal needs,
-  /// so the artwork must not swallow the silhouette.
+  /// aspect ratio. There is no fill behind it, so it is sized against the whole
+  /// block rather than the shorter axis — it just has to stay inside the faint
+  /// outline that marks the two-cell footprint.
   void _drawEgg(Canvas canvas, double left, double top, double w, double h) {
     final sprite = eggSprite;
     if (sprite == null) return;
@@ -216,9 +271,11 @@ class BoardPainter extends CustomPainter {
       sprite.height.toDouble(),
     );
 
-    // Contain within the shorter axis, inset so the egg never touches the edge.
-    final box = min(w, h) * 0.72;
-    final scale = min(box / sprite.width, box / sprite.height);
+    // Contain within the block, inset so the egg never touches the edge.
+    final scale = min(
+      (w * 0.9) / sprite.width,
+      (h * 0.9) / sprite.height,
+    );
     final dw = sprite.width * scale;
     final dh = sprite.height * scale;
     final dst = Rect.fromLTWH(
@@ -243,8 +300,10 @@ class BoardPainter extends CustomPainter {
     final cx = left + w / 2;
     final cy = top + h / 2;
     final arrowSize = (block.isHorizontal ? h : w) * 0.18;
+    // Brighter than it was over the old flat fills: the arrows now sit on top
+    // of textured brick and get lost at 0.3.
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.3)
+      ..color = Colors.white.withOpacity(0.55)
       ..style = PaintingStyle.fill;
 
     if (block.isHorizontal) {

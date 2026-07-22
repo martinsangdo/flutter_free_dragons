@@ -18,16 +18,22 @@ class AppColors {
   static const Color lockedLevel = Color(0xFF3A4A5A);
   static const Color shadow = Color(0x88000000);
 
+  /// Mortar between the bricks of an obstacle block.
+  static const Color mortar = Color(0xFF6B5F55);
+
+  /// Obstacle blocks are drawn as brick walls, so these are clay/stone tones
+  /// rather than neon. They stay varied enough that adjacent blocks read as
+  /// separate pieces, but none of them competes with the golden egg.
   static const List<Color> blockColors = [
-    Color(0xFF00BCD4), // cyan
-    Color(0xFFFF6B35), // orange
-    Color(0xFFAA44FF), // purple
-    Color(0xFF44DD88), // green
-    Color(0xFFFF4488), // pink
-    Color(0xFF44AAFF), // blue
-    Color(0xFFFFAA00), // amber
-    Color(0xFF44FFDD), // teal
-    Color(0xFFFF4444), // red
-    Color(0xFF88FF44), // lime
+    Color(0xFF9E4B34), // terracotta
+    Color(0xFF7D3B2B), // deep clay
+    Color(0xFFB35F3F), // rust
+    Color(0xFF8A5A44), // umber
+    Color(0xFF6E4636), // dark brick
+    Color(0xFFA8603C), // sienna
+    Color(0xFF7A5548), // taupe brick
+    Color(0xFF95503A), // burnt clay
+    Color(0xFF66463A), // shadow brick
+    Color(0xFFAD6A4A), // sandstone
   ];
 }
