@@ -8,7 +8,6 @@ import '../widgets/banner_ad_placeholder.dart';
 import '../data/level_repository.dart';
 import '../data/app_prefs.dart';
 import '../data/daily_service.dart';
-import '../data/egg_sprites.dart';
 import '../data/progress_service.dart';
 import '../data/sound_service.dart';
 
@@ -215,7 +214,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 engine: _engine,
                 onWin: _onWin,
                 onMove: () => SoundService.instance.playMove(),
-                eggSprite: EggSprites.forLevel(_level.number),
+                eggSeed: _level.number,
               ),
             ),
           ),

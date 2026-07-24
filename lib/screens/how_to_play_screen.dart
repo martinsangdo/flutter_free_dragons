@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../data/app_prefs.dart';
-import '../data/egg_sprites.dart';
 import '../models/block.dart';
 import '../theme/app_colors.dart';
 import '../widgets/board_painter.dart';
@@ -255,7 +254,7 @@ class _HowToPage extends StatelessWidget {
           blocks: demoBlocks,
           cellSize: cell,
           exitPulse: 1,
-          eggSprite: EggSprites.sample,
+          eggSeed: 3,
         ),
       ),
     );

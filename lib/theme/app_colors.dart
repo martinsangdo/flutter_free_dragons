@@ -21,6 +21,19 @@ class AppColors {
   /// Mortar between the bricks of an obstacle block.
   static const Color mortar = Color(0xFF6B5F55);
 
+  // --- Ancient Temple / Relic Vault theme (board rendering only) ---
+  /// Warm torch light — used for the board vignette, engraved runes and rims.
+  static const Color torchGlow = Color(0xFFFFB067);
+
+  /// Carved stone slab the board is cut from (top of the slab gradient).
+  static const Color templeFloor = Color(0xFF262130);
+
+  /// Bottom of the slab gradient — deeper in shadow.
+  static const Color templeFloorDeep = Color(0xFF15111C);
+
+  /// Recessed socket each block rests in, cut into the slab.
+  static const Color templeSlot = Color(0xFF191521);
+
   /// Obstacle blocks are drawn as brick walls, so these are clay/stone tones
   /// rather than neon. They stay varied enough that adjacent blocks read as
   /// separate pieces, but none of them competes with the golden egg.
