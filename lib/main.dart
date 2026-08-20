@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'data/ads_service.dart';
 import 'data/sound_service.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_colors.dart';
@@ -7,6 +10,9 @@ import 'theme/app_colors.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SoundService.instance.init();
+  // Fire-and-forget: AdMob init shouldn't delay first paint; ads simply appear
+  // once the SDK is ready. No-op on Web.
+  unawaited(AdsService.instance.init());
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,

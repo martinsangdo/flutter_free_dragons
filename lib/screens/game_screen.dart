@@ -1,10 +1,12 @@
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../logic/game_engine.dart';
 import '../models/level.dart';
 import '../theme/app_colors.dart';
 import '../widgets/game_board.dart';
-import '../widgets/banner_ad_placeholder.dart';
+import '../widgets/ad_banner.dart';
+import '../data/ads_service.dart';
 import '../data/level_repository.dart';
 import '../data/app_prefs.dart';
 import '../data/daily_service.dart';
@@ -36,6 +38,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _showWin = false;
   bool _sfxOn = false;
   int _dailyStreak = 0;
+
+  /// Once the player watches the rewarded ad for hints on this level, further
+  /// hints are free — the reward ad shows at most **once per level**. Reset on
+  /// [_reset] and when a new level is opened (a fresh [GameScreen]).
+  bool _hintUnlocked = false;
 
   bool get _isEndless => widget.mode == GameMode.endless;
   bool get _isDaily => widget.mode == GameMode.daily;
@@ -106,6 +113,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   void _reset() {
     _engine.reset();
+    _hintUnlocked = false;
     setState(() => _showWin = false);
     _winController.reset();
   }
@@ -124,43 +132,52 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
-  /// Stubbed rewarded-ad hint flow. Wire a real rewarded ad in place of the
-  /// dialog's "Watch" branch; on reward, [GameEngine.computeHint] already
-  /// highlights the next optimal move (computed by the solver).
+  /// Hint flow, gated by a rewarded ad **once per level**. The first hint on a
+  /// level asks the player to watch a rewarded ad; once earned, hints are free
+  /// for the rest of that level ([_hintUnlocked]). On reward,
+  /// [GameEngine.computeHint] highlights the next optimal move (from the solver).
   Future<void> _showHint() async {
     if (_engine.isWon) return;
-    final watch = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.boardBg,
-        title: const Text('Need a hint?',
-            style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text(
-          'Watch a short video to reveal the next best move.\n\n'
-          '(Rewarded ad placeholder — no ad SDK wired up yet.)',
-          style: TextStyle(color: AppColors.textSecondary),
+
+    // On Web ads are disabled, so hints are simply free — no reward prompt.
+    if (!_hintUnlocked && !kIsWeb) {
+      final watch = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.boardBg,
+          title: const Text('Need a hint?',
+              style: TextStyle(color: AppColors.textPrimary)),
+          content: const Text(
+            'Watch a short video to reveal the next best move. '
+            'Hints stay free for the rest of this level.',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('CANCEL',
+                  style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('WATCH',
+                  style: TextStyle(color: AppColors.primary)),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('CANCEL',
-                style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('WATCH',
-                style: TextStyle(color: AppColors.primary)),
-          ),
-        ],
-      ),
-    );
-    if (watch == true) {
-      final ok = _engine.computeHint();
-      if (!ok && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No hint available')),
-        );
-      }
+      );
+      if (watch != true) return;
+
+      final rewarded = await AdsService.instance.showRewarded();
+      if (!rewarded) return;
+      _hintUnlocked = true;
+    }
+
+    final ok = _engine.computeHint();
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hint available')),
+      );
     }
   }
 
@@ -190,7 +207,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     ],
                   ),
                 ),
-                const BannerAdPlaceholder(),
+                const AdBanner(),
               ],
             ),
           ),

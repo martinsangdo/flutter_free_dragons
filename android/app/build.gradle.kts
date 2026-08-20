@@ -21,7 +21,8 @@ android {
 
     defaultConfig {
         applicationId = "com.xufagroup.free_the_eggs"
-        minSdk = flutter.minSdkVersion
+        // google_mobile_ads requires API 23+.
+        minSdk = maxOf(flutter.minSdkVersion, 23)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
