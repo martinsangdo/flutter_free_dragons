@@ -43,7 +43,7 @@ class AdsService {
     // TODO: replace with the real production banner unit IDs before release.
     return Platform.isIOS
         ? 'ca-app-pub-3940256099942544/2934735716'
-        : 'ca-app-pub-3940256099942544/6300978111';
+        : 'ca-app-pub-8762959223087619/2791285020';
   }
 
   static String get _rewardedUnitId {
@@ -55,7 +55,7 @@ class AdsService {
     // TODO: replace with the real production rewarded unit IDs before release.
     return Platform.isIOS
         ? 'ca-app-pub-3940256099942544/1712485313'
-        : 'ca-app-pub-3940256099942544/5224354917';
+        : 'ca-app-pub-8762959223087619/3142638817';
   }
 
   // --- Rewarded ad -----------------------------------------------------------
