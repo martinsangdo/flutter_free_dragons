@@ -8,16 +8,14 @@ import '../widgets/game_board.dart';
 import '../widgets/ad_banner.dart';
 import '../data/ads_service.dart';
 import '../data/level_repository.dart';
-import '../data/app_prefs.dart';
 import '../data/daily_service.dart';
 import '../data/progress_service.dart';
 import '../data/sound_service.dart';
 
-enum GameMode { campaign, endless, daily }
+enum GameMode { campaign, daily }
 
-/// Plays a single level in one of three modes:
+/// Plays a single level in one of two modes:
 ///  - [GameMode.campaign]: [index] is the level index (0-based).
-///  - [GameMode.endless]:  [index] is the 0-based endless level number.
 ///  - [GameMode.daily]:    today's deterministic daily challenge.
 class GameScreen extends StatefulWidget {
   final int index;
@@ -44,7 +42,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   /// [_reset] and when a new level is opened (a fresh [GameScreen]).
   bool _hintUnlocked = false;
 
-  bool get _isEndless => widget.mode == GameMode.endless;
   bool get _isDaily => widget.mode == GameMode.daily;
 
   @override
@@ -54,9 +51,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     switch (widget.mode) {
       case GameMode.campaign:
         _level = repo.levels[widget.index];
-        break;
-      case GameMode.endless:
-        _level = repo.endlessLevel(widget.index);
         break;
       case GameMode.daily:
         _level = repo.dailyLevel(DateTime.now());
@@ -88,10 +82,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     switch (widget.mode) {
       case GameMode.campaign:
         ProgressService.markCompleted(widget.index, _engine.starRating);
-        break;
-      case GameMode.endless:
-        // Reaching level N means N levels cleared.
-        await AppPrefs.recordEndless(widget.index + 1);
         break;
       case GameMode.daily:
         final result = await DailyService.markComplete();
@@ -255,11 +245,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             child: Column(
               children: [
                 Text(
-                  _isDaily
-                      ? 'DAILY CHALLENGE'
-                      : _isEndless
-                          ? 'ENDLESS #${widget.index + 1}'
-                          : 'LEVEL ${_level.number}',
+                  _isDaily ? 'DAILY CHALLENGE' : 'LEVEL ${_level.number}',
                   style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 20,
@@ -339,9 +325,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildWinOverlay() {
-    final hasNext = _isEndless ||
-        (widget.mode == GameMode.campaign &&
-            widget.index + 1 < LevelRepository.instance.levelCount);
+    final hasNext = widget.mode == GameMode.campaign &&
+        widget.index + 1 < LevelRepository.instance.levelCount;
     return AnimatedBuilder(
       animation: _winScale,
       builder: (_, __) => Container(

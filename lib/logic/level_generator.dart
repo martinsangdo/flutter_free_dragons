@@ -9,7 +9,7 @@ import 'solver.dart';
 /// Every candidate board is checked with [RushHourSolver] before being returned;
 /// unsolvable or trivially-solved boards are rejected and regenerated. Because
 /// generation is seeded, the same seed always yields the same board, so the
-/// hand-off level set and endless levels are stable across launches.
+/// hand-off level set is stable across launches.
 class LevelGenerator {
   static const _keyLength = 2;
 

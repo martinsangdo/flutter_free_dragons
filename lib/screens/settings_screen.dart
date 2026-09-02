@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../data/app_prefs.dart';
 import '../data/level_repository.dart';
 import '../data/progress_service.dart';
 import '../data/sound_service.dart';
@@ -198,8 +197,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Reset Progress?',
             style: TextStyle(color: AppColors.textPrimary)),
         content: const Text(
-          'This clears every unlocked level, star and your endless best. This '
-          'cannot be undone.',
+          'This clears every unlocked level and star. This cannot be undone.',
           style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
@@ -218,7 +216,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (confirmed == true) {
       await ProgressService.resetProgress(LevelRepository.instance.levelCount);
-      await AppPrefs.resetEndless();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Progress reset')),

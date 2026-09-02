@@ -32,8 +32,8 @@ add player-facing copy, say "egg".
   migrate to Riverpod to avoid a risky rewrite of working code — if a migration
   is ever wanted, the notifiers are the seams to replace.
 - **Persistence: `shared_preferences` only.** Progress is simple key/value
-  (unlock index, per-level stars, endless best, settings flags), so no
-  Hive/sqflite schema was needed. Generated levels are cached as JSON in prefs.
+  (unlock index, per-level stars, settings flags), so no Hive/sqflite schema
+  was needed. Generated levels are cached as JSON in prefs.
 - **App ID prefix:** `com.xufagroup.*` (Android `com.xufagroup.free_the_eggs`,
   iOS `com.xufagroup.freeTheEggs`). iOS uses camelCase because Apple bundle IDs
   are restricted to alphanumerics, hyphens and periods — no underscores.
@@ -48,9 +48,9 @@ lib/
     constants.dart             kGridSize (6), kExitRow (2)
     levels_data.dart           kCuratedLevels — 20 hand-authored levels
     level_repository.dart      Source of truth: curated + generated (80 total),
-                               caching, and endless-level generation
+                               caching, and daily-level generation
     progress_service.dart      Unlock state + per-level stars (shared_preferences)
-    app_prefs.dart             How-to-play-seen flag + endless best
+    app_prefs.dart             How-to-play-seen flag
     sound_service.dart         Procedurally-generated SFX + ambient music,
                                independent persisted toggles
   models/
@@ -63,9 +63,9 @@ lib/
   screens/
     splash_screen.dart         2s white splash, precache + warm repository
     how_to_play_screen.dart    First-launch tutorial (+ replay from Settings)
-    home_screen.dart           Play / Levels / Endless + Settings
+    home_screen.dart           Play / Levels + Settings
     level_select_screen.dart   Grid grouped by difficulty, reactive to progress
-    game_screen.dart           Gameplay (campaign + endless), hint, banner slot
+    game_screen.dart           Gameplay (campaign + daily), hint, banner slot
     settings_screen.dart       Sound/music toggles, replay tutorial, reset
   widgets/
     game_board.dart            Gesture handling + board CustomPaint host
@@ -119,19 +119,19 @@ assets/images/logo.png         Studio logo (splash + launcher icon source)
   band needs *both* ends: block density alone pushes step count well past any
   floor, which is what made the old curve spiky. Seeded, so a given seed always
   yields the same board.
-- **Endless mode:** `LevelRepository.endlessLevel(index)` generates on demand,
-  step-banded like the campaign and opening around mid-campaign difficulty (7
-  decisions). Progress persists via `AppPrefs.getEndlessBest()`, which is also
-  what the home screen uses to **resume** endless where the player left off —
-  it is not just a stat.
 - **Daily Challenge (retention loop):** `LevelRepository.dailyLevel(date)`
   generates one deterministic mid-tier puzzle per calendar day (seeded by the
   date, so it can't be re-rolled). `lib/data/daily_service.dart` tracks the
   streak — consecutive days completed, reset once a day is missed — plus the
   longest streak, all in `shared_preferences`. The home screen shows a daily
   card with the live 🔥 streak; `GameScreen(mode: GameMode.daily)` plays it.
-- **Game modes:** `GameScreen` takes a `GameMode` (`campaign` / `endless` /
-  `daily`); `index` is the level or endless index (unused for daily).
+- **Game modes:** `GameScreen` takes a `GameMode` (`campaign` / `daily`);
+  `index` is the level index (unused for daily).
+- **Endless mode was removed.** The game previously had a third, difficulty-
+  ramping infinite mode (`LevelRepository.endlessLevel`, an `AppPrefs`
+  endless-best/resume pointer, and an ENDLESS button on the home screen). It
+  was deliberately cut — don't reintroduce `GameMode.endless` or an ENDLESS
+  button without an explicit product decision to bring the mode back.
 
 ## Known placeholders (need real integration later)
 

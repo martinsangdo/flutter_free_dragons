@@ -14,8 +14,7 @@ import 'levels_data.dart';
 ///
 /// The first [kCuratedLevels] are hand-authored (they form the gentle tutorial
 /// curve); the remainder are procedurally generated once, verified solvable, and
-/// cached to disk so later launches are instant. Endless levels are generated
-/// on demand with ever-increasing difficulty.
+/// cached to disk so later launches are instant.
 class LevelRepository extends ChangeNotifier {
   LevelRepository._();
   static final LevelRepository instance = LevelRepository._();
@@ -109,27 +108,6 @@ class LevelRepository extends ChangeNotifier {
       maxSteps: 11,
       minPar: 8,
       maxPar: 16,
-    );
-  }
-
-  /// Generate an endless-mode level for the given 0-based [index]. Difficulty
-  /// scales indefinitely with the index. Deterministic per index.
-  ///
-  /// Like the campaign, the curve is driven by solver *step* count rather than
-  /// par — see [LevelGenerator.campaignParams]. Endless opens around mid-campaign
-  /// difficulty (7 decisions) and climbs from there.
-  Level endlessLevel(int index) {
-    final targetBlocks = min(13, 8 + index ~/ 3);
-    final minSteps = min(15, 7 + index ~/ 2);
-    final rng = Random(500000 + index);
-    return LevelGenerator.generate(
-      number: index + 1,
-      rng: rng,
-      targetBlocks: targetBlocks,
-      minSteps: minSteps,
-      maxSteps: minSteps + 3,
-      minPar: minSteps,
-      maxPar: minSteps + 8,
     );
   }
 }

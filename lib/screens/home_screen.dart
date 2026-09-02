@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../data/app_prefs.dart';
 import '../data/daily_service.dart';
 import '../theme/app_colors.dart';
 import 'level_select_screen.dart';
@@ -42,19 +41,6 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
     _loadDaily(); // reflect any new completion/streak on return
-  }
-
-  /// Endless resumes where the player left off: [AppPrefs.getEndlessBest]
-  /// stores the number of endless levels cleared, which is exactly the 0-based
-  /// index of the next unplayed one.
-  Future<void> _openEndless() async {
-    final resumeIndex = await AppPrefs.getEndlessBest();
-    if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => GameScreen(index: resumeIndex, mode: GameMode.endless),
-      ),
-    );
   }
 
   @override
@@ -112,9 +98,6 @@ class _HomeScreenState extends State<HomeScreen>
                             builder: (_) => const LevelSelectScreen()),
                       );
                     }, AppColors.boardBg, AppColors.primary),
-                    const SizedBox(height: 14),
-                    _buildButton('ENDLESS', Icons.all_inclusive_rounded,
-                        _openEndless, AppColors.boardBg, AppColors.keyBlock),
                     const Spacer(flex: 2),
                   ],
                 ),
@@ -149,11 +132,8 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.egg_alt_rounded,
-              color: AppColors.keyBlock,
-              size: 52,
-            ),
+            padding: const EdgeInsets.all(22),
+            child: Image.asset('assets/images/egg_icon.png'),
           ),
           const SizedBox(height: 24),
           const Text(

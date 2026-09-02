@@ -37,6 +37,12 @@ class AppColors {
   /// Obstacle blocks are drawn as brick walls, so these are clay/stone tones
   /// rather than neon. They stay varied enough that adjacent blocks read as
   /// separate pieces, but none of them competes with the golden egg.
+  ///
+  /// Must have at least as many entries as the largest board can have
+  /// non-key blocks (`LevelGenerator.campaignParams` caps out at 13 total
+  /// blocks, i.e. 12 obstacles) — `GameEngine._initBlocks` assigns
+  /// these by plain `index % length` cycling, so a shorter list makes two
+  /// unrelated blocks land on the identical color and read as a duplicate.
   static const List<Color> blockColors = [
     Color(0xFF9E4B34), // terracotta
     Color(0xFF7D3B2B), // deep clay
@@ -48,5 +54,9 @@ class AppColors {
     Color(0xFF95503A), // burnt clay
     Color(0xFF66463A), // shadow brick
     Color(0xFFAD6A4A), // sandstone
+    Color(0xFFC97C52), // light terracotta
+    Color(0xFF5C3A2E), // deep umber
+    Color(0xFF9C6B4F), // clay tan
+    Color(0xFF4F3226), // espresso brick
   ];
 }

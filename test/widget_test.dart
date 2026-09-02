@@ -15,6 +15,5 @@ void main() {
     expect(find.text('FREE THE EGGS'), findsOneWidget);
     expect(find.text('PLAY'), findsOneWidget);
     expect(find.text('LEVELS'), findsOneWidget);
-    expect(find.text('ENDLESS'), findsOneWidget);
   });
 }
