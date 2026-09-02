@@ -49,17 +49,23 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
-  # Generates platform launcher icons from assets/images/logo.png.
+  # Generates platform launcher icons from assets/images/app_icon.png.
   # Run: dart run flutter_launcher_icons
   flutter_launcher_icons: ^0.14.1
 
 # App icon generation config (Section 10 of the game spec).
+#
+# This is the game's own icon (the golden egg on the app's dark-navy theme),
+# deliberately separate from assets/images/logo.png (the XP Group studio logo
+# shown on the splash screen) — the two must not be the same image.
 flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true
-  image_path: "assets/images/logo.png"
-  background_color_ios: "#FFFFFF"
+  image_path: "assets/images/app_icon.png"
+  background_color_ios: "#0D1B2A"
+  adaptive_icon_background: "#0D1B2A"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
